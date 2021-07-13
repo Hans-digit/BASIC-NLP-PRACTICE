@@ -22,7 +22,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
-targetXML = open('ted_en-20160408.xml', 'r', encoding='UTF8')
+targetXML = open('./data/ted_en-20160408.xml', 'r', encoding='UTF8')
 target_text = etree.parse(targetXML)
 
 # xml 파일로부터 <content>와 </content> 사이의 내용만 가져온다.
