@@ -8,6 +8,7 @@ from tqdm import tqdm
 import torch
 import numpy as np
 from model import RNN_imdb
+from torch import optim as optim
 
 data = pd.read_csv('/home/james/data/IMDB Dataset.csv', dtype = object)
 index_list = list(data.index)
@@ -74,10 +75,19 @@ def get_batches(context_tuple_list, batch_size=100):
             batch_target, batch_context = [], []
     return batches
 
+def train_test_split(batches, train_ratio):
+    elements = len(batches)
+    middle = int(elements * train_ratio)
+    return [batches[:middle],  batches[middle:]]
+
 batches = get_batches(context_tuple_list, batch_size = 100)
+train_batches, test_batches = train_test_split(batches, 0.8)
+
 model = RNN_imdb(vocabulary_len, batch_size = 100, text_size = 400, input_size = 400, hidden_size = 200, num_layers = 3).to(device)
 optimizer = torch.optim.Adam(model.parameters())
+scheduler = optim.lr_scheduler.LambdaLR(optimizer = optimizer, lr_lambda = lambda epoch:0.95 **epoch, last_epoch = -1)
 criterion = torch.nn.CrossEntropyLoss()
+best_accuracy = 0
 for _ in range(20):
     for i in tqdm(range(len(batches)-10)):
         text, sentiment = batches[i]
@@ -86,14 +96,24 @@ for _ in range(20):
         loss = criterion(output, sentiment)
         loss.backward()
         optimizer.step()
-        if i % 10 == 0:
+        if i % 100 == 0:
             model.eval()
-            test_result = model.forward(batches[495][0])
-            test_result = torch.argmax(test_result, dim=1)
-            test_answer = batches[495][1]
-            print(torch.sum(test_result == test_answer))
+            ans = 0
+            for _ in test_batches:
+                test_result = model.forward(_[0])
+                test_result = torch.argmax(test_result, dim=1)
+                test_answer = _[1]
+                ans += torch.sum(test_result == test_answer).item()
+            accuracy = (ans / len(test_batches))
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                print(f'BEST ACCURACY : {best_accuracy}')
+                if i != 0:
+                    torch.save(model.state_dict(), './model/model_rnn.bin')
             model.train()
         else:
             pass
+    scheduler.step()
+    print(optimizer.param_groups[0]['lr'])
 
-torch.save(model.state_dict(), './model/model_rnn.bin')
+# torch.save(model.state_dict(), './model/model_rnn.bin')
