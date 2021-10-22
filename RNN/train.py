@@ -85,7 +85,8 @@ train_batches, test_batches = train_test_split(batches, 0.8)
 
 model = RNN_imdb(vocabulary_len, batch_size = 100, text_size = 400, input_size = 400, hidden_size = 200, num_layers = 3).to(device)
 optimizer = torch.optim.Adam(model.parameters())
-scheduler = optim.lr_scheduler.LambdaLR(optimizer = optimizer, lr_lambda = lambda epoch:0.95 **epoch, last_epoch = -1)
+# scheduler = optim.lr_scheduler.LambdaLR(optimizer = optimizer, lr_lambda = lambda epoch:0.95 **epoch, last_epoch = -1)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=3, eta_min=0.001)
 criterion = torch.nn.CrossEntropyLoss()
 best_accuracy = 0
 for _ in range(20):
